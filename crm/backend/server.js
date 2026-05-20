@@ -7,7 +7,7 @@ const errorHandler = require('./src/middleware/errorHandler');
 const app  = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:3000'] }));
+app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:3000', 'https://salescrm-gules.vercel.app'] }));
 app.use(express.json());
 
 // Routes
