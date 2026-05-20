@@ -1,5 +1,5 @@
 import axios from 'axios';
-const http = axios.create({ baseURL: '/api' });
+const http = axios.create({ baseURL: import.meta.env.VITE_API_URL || '/api' });
 
 // Companies
 export const getCompanies  = ()      => http.get('/companies');
