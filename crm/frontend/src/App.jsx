@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { AppProvider } from './context/AppContext';
 import Sidebar from './components/Sidebar';
 import { getDashStats } from './api';
+import UserPicker, { getCurrentUser } from './components/UserPicker';
 
 import Dashboard     from './pages/Dashboard';
 import Pipeline      from './pages/Pipeline';
@@ -14,8 +15,10 @@ import Contacts      from './pages/Contacts';
 import Activities    from './pages/Activities';
 import Grants        from './pages/Grants';
 
+
 export default function App() {
   const [stats, setStats] = useState({ openDeals: 0, overdueCount: 0 });
+  const [currentUser, setCurrentUser] = useState(getCurrentUser());
 
   useEffect(() => {
     getDashStats().then(r => setStats(r.data)).catch(() => {});
@@ -23,7 +26,7 @@ export default function App() {
 
   return (
     <AppProvider>
-      <BrowserRouter>
+      {!currentUser && <UserPicker onSelect={setCurrentUser} />}<BrowserRouter>
         <div className="app">
           <Sidebar openDeals={stats.openDeals} overdueCount={stats.overdueCount} />
           <main className="main">
