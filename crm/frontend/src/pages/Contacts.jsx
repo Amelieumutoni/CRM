@@ -9,8 +9,7 @@ import { useApp } from '../context/AppContext';
 
 const EMPTY = { firstName:'', lastName:'', title:'', email:'', phone:'', companyId:'', linkedin:'' };
 
-const MMI_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRPQBtXqHGroaV3f4_EdkAtTMx3jOO3EeMWxquUJ9r25s3DXmUihtBgm-Wriw8e7vbGpP_ZrJe3rFCi/pubhtml?widget=true&headers=false';
-
+const MMI_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1mk1O9_RQUNEX-LVS797AlKA4p9_XqSj7hbEHZ6k8yIA/edit?gid=383796101';
 export default function Contacts() {
   const [activeTab, setActiveTab] = useState('contacts'); // 'contacts' | 'mmi'
   const { data: contacts, loading, refetch } = useApi(getContacts);
@@ -23,7 +22,37 @@ export default function Contacts() {
   const nav = useNavigate();
   const { showToast } = useApp();
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
-
+async function importFromSheet() {
+    try {
+      showToast('Importing contacts…');
+      const csvUrl = 'https://docs.google.com/spreadsheets/d/1mk1O9_RQUNEX-LVS797AlKA4p9_XqSj7hbEHZ6k8yIA/export?format=csv&gid=383796101';
+      const res  = await fetch(csvUrl);
+      const text = await res.text();
+      const rows = text.trim().split('\n').slice(1);
+      let imported = 0;
+      for (const row of rows) {
+        const cols = row.split(',').map(c => c.replace(/^"|"$/g, '').trim());
+        const [facilityName, location, telephone, status, inCharge, notes] = cols;
+        if (!inCharge || inCharge.trim() === '') continue;
+        const nameParts = inCharge.trim().split(' ');
+        const firstName = nameParts[0] || 'Unknown';
+        const lastName  = nameParts.slice(1).join(' ') || '—';
+        try {
+          await createContact({
+            firstName, lastName,
+            title: facilityName || '',
+            phone: telephone    || '',
+            notes: `Location: ${location} | Status: ${status} | ${notes}`,
+          });
+          imported++;
+        } catch { /* skip duplicates or bad rows */ }
+      }
+      await refetch();
+      showToast(`✅ Imported ${imported} contacts from MMI sheet!`);
+    } catch {
+      showToast('Failed to import — make sure the sheet is shared publicly');
+    }
+  }
   const filtered = (contacts || []).filter(c =>
     !search || `${c.firstName} ${c.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
     (c.title||'').toLowerCase().includes(search.toLowerCase()) ||
@@ -75,7 +104,10 @@ export default function Contacts() {
       {activeTab === 'mmi' && (
         <div>
           <div className="row-between mb12">
-            <p className="muted f13">Live view of your MMI Google Sheet</p>
+            <div className="row gap8">
+              <p className="muted f13">Live view of your MMI Google Sheet</p>
+              <button className="btn btn-primary btn-sm" onClick={importFromSheet}>⬇ Import contacts from sheet</button>
+            </div>
             <a href={MMI_SHEET_URL} target="_blank" rel="noreferrer" className="btn btn-sm">&#8599; Open in Google Sheets</a>
           </div>
           <div style={{ border:'0.5px solid var(--border)', borderRadius:'var(--radius-lg)', overflow:'hidden' }}>
