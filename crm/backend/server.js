@@ -16,6 +16,7 @@ app.use('/api/contacts',   require('./src/routes/contacts'));
 app.use('/api/deals',      require('./src/routes/deals'));
 app.use('/api/activities', require('./src/routes/activities'));
 app.use('/api/dashboard',  require('./src/routes/dashboard'));
+app.use('/api/grants',     require('./src/routes/grants'));
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', db: 'mongodb' }));
 
 app.use(errorHandler);

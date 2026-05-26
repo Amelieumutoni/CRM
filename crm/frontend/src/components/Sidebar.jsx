@@ -6,6 +6,7 @@ const NAV = [
   { to: '/companies',  icon: '⬡', label: 'Companies'  },
   { to: '/contacts',   icon: '◉', label: 'Contacts'   },
   { to: '/activities', icon: '◷', label: 'Activities' },
+  { to: '/grants',     icon: '◎', label: 'Grants'     },
 ];
 export default function Sidebar({ openDeals = 0, overdueCount = 0 }) {
   return (

@@ -31,3 +31,10 @@ export const deleteActivity  = (id)    => http.delete(`/activities/${id}`);
 // Dashboard
 export const getDashStats    = () => http.get('/dashboard/stats');
 export const getDashUpcoming = () => http.get('/dashboard/upcoming');
+
+// Grants
+export const getGrants   = ()      => http.get('/grants');
+export const getGrantStats = ()    => http.get('/grants/stats');
+export const createGrant = (data)  => http.post('/grants', data);
+export const updateGrant = (id, d) => http.put(`/grants/${id}`, d);
+export const deleteGrant = (id)    => http.delete(`/grants/${id}`);

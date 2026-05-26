@@ -12,6 +12,7 @@ import Companies     from './pages/Companies';
 import CompanyDetail from './pages/CompanyDetail';
 import Contacts      from './pages/Contacts';
 import Activities    from './pages/Activities';
+import Grants        from './pages/Grants';
 
 export default function App() {
   const [stats, setStats] = useState({ openDeals: 0, overdueCount: 0 });
@@ -35,6 +36,7 @@ export default function App() {
               <Route path="/companies/:id" element={<CompanyDetail />} />
               <Route path="/contacts"      element={<Contacts />} />
               <Route path="/activities"    element={<Activities />} />
+              <Route path="/grants"        element={<Grants />} />
             </Routes>
           </main>
         </div>

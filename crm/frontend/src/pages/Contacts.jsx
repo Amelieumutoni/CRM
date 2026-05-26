@@ -7,8 +7,7 @@ import Modal from '../components/Modal';
 import { id } from '../utils/helpers';
 import { useApp } from '../context/AppContext';
 
-const EMPTY = { firstName:'', lastName:'', title:'', email:'', phone:'', companyId:'', linkedin:'' };
-
+const EMPTY = { firstName:'', lastName:'', title:'', email:'', phone:'', companyId:'', notes:'' };
 const MMI_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1mk1O9_RQUNEX-LVS797AlKA4p9_XqSj7hbEHZ6k8yIA/edit?gid=383796101';
 export default function Contacts() {
   const [activeTab, setActiveTab] = useState('contacts'); // 'contacts' | 'mmi'
@@ -170,7 +169,7 @@ async function importFromSheet() {
               <div className="fg"><label>Email</label><input className="finput" type="email" value={form.email||''} onChange={set('email')} /></div>
               <div className="fg"><label>Phone</label><input className="finput" value={form.phone||''} onChange={set('phone')} /></div>
             </div>
-            <div className="fg"><label>LinkedIn</label><input className="finput" value={form.linkedin||''} onChange={set('linkedin')} placeholder="linkedin.com/in/name" /></div>
+            <div className="fg"><label>Notes</label><textarea className="ftextarea" value={form.notes||''} onChange={set('notes')} placeholder="Any additional notes…" /></div>
             <div className="row-between mt8">
               <button type="button" className="btn btn-sm" onClick={() => setShowModal(false)}>Cancel</button>
               <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>{saving ? 'Saving…' : (editTarget ? 'Save changes' : 'Add contact')}</button>
