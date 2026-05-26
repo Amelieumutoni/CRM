@@ -3,7 +3,6 @@ import { useApi }   from '../hooks/useApi';
 import { useApp }   from '../context/AppContext';
 import { getGrants, getGrantStats, createGrant, updateGrant, deleteGrant, getContacts } from '../api';
 import Modal  from '../components/Modal';
-import Badge  from '../components/Badge';
 import { formatCurrency, formatDate, id } from '../utils/helpers';
 
 const STAGES = ['Identifying','Drafting','Submitted','Under Review','Approved','Rejected'];
@@ -35,7 +34,8 @@ function isOverdue(deadline) {
 
 export default function Grants() {
   const { data: grants  = [], loading, refetch } = useApi(getGrants, []);
-  const { data: stats   = {} }                   = useApi(getGrantStats, []);
+  const { data: rawStats } = useApi(getGrantStats, []);
+  const stats = rawStats || {};
   const { data: contacts = [] }                  = useApi(getContacts, []);
   const { showToast } = useApp();
 
