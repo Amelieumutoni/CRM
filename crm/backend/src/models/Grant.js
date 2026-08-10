@@ -11,6 +11,7 @@ const grantSchema = new mongoose.Schema({
   decisionDate:     { type: Date, default: null },
   contactId:        { type: mongoose.Schema.Types.ObjectId, ref: 'Contact', default: null },
   notes:            { type: String, default: '' },
+   owner:            { type: String, default: '' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Grant', grantSchema);

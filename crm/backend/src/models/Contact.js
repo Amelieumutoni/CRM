@@ -9,6 +9,8 @@ const contactSchema = new mongoose.Schema({
   phone:      { type: String, default: '' },
   linkedin:   { type: String, default: '' },
   isPrimary:  { type: Boolean, default: false },
+  institution: { type: String, default: '' },
+  owner:      { type: String, default: '' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Contact', contactSchema);

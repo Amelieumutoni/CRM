@@ -6,11 +6,13 @@ import Avatar from '../components/Avatar';
 import Modal from '../components/Modal';
 import { id } from '../utils/helpers';
 import { useApp } from '../context/AppContext';
+import { getCurrentUser } from '../components/UserPicker';
 
-const EMPTY = { firstName:'', lastName:'', title:'', email:'', phone:'', companyId:'', notes:'' };
+const EMPTY = { firstName:'', lastName:'', title:'', institution:'', email:'', phone:'', companyId:'', notes:'' };
 const MMI_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1mk1O9_RQUNEX-LVS797AlKA4p9_XqSj7hbEHZ6k8yIA/edit?gid=383796101';
+
 export default function Contacts() {
-  const [activeTab, setActiveTab] = useState('contacts'); // 'contacts' | 'mmi'
+  const [activeTab, setActiveTab] = useState('contacts');
   const { data: contacts, loading, refetch } = useApi(getContacts);
   const { data: companies } = useApi(getCompanies);
   const [search,     setSearch]     = useState('');
@@ -21,7 +23,8 @@ export default function Contacts() {
   const nav = useNavigate();
   const { showToast } = useApp();
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
-async function importFromSheet() {
+
+  async function importFromSheet() {
     try {
       showToast('Importing contacts…');
       const csvUrl = 'https://docs.google.com/spreadsheets/d/1mk1O9_RQUNEX-LVS797AlKA4p9_XqSj7hbEHZ6k8yIA/export?format=csv&gid=383796101';
@@ -42,6 +45,7 @@ async function importFromSheet() {
             title: facilityName || '',
             phone: telephone    || '',
             notes: `Location: ${location} | Status: ${status} | ${notes}`,
+            owner: getCurrentUser() || 'Unknown',
           });
           imported++;
         } catch { /* skip duplicates or bad rows */ }
@@ -52,20 +56,30 @@ async function importFromSheet() {
       showToast('Failed to import — make sure the sheet is shared publicly');
     }
   }
+
   const filtered = (contacts || []).filter(c =>
     !search || `${c.firstName} ${c.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
     (c.title||'').toLowerCase().includes(search.toLowerCase()) ||
-    (c.companyName||'').toLowerCase().includes(search.toLowerCase())
+    (c.companyName||'').toLowerCase().includes(search.toLowerCase()) ||
+    (c.institution||'').toLowerCase().includes(search.toLowerCase())
   );
 
   function openCreate() { setForm(EMPTY); setEditTarget(null); setShowModal(true); }
-  function openEdit(ct) { setForm({ firstName:ct.firstName, lastName:ct.lastName, title:ct.title||'', email:ct.email||'', phone:ct.phone||'', companyId: ct.companyId||'', linkedin:ct.linkedin||'' }); setEditTarget(ct); setShowModal(true); }
+  function openEdit(ct) {
+    setForm({
+      firstName: ct.firstName, lastName: ct.lastName, title: ct.title||'',
+      institution: ct.institution||'', email: ct.email||'', phone: ct.phone||'',
+      companyId: ct.companyId||'', notes: ct.notes||'',
+    });
+    setEditTarget(ct);
+    setShowModal(true);
+  }
 
   async function handleSave(e) {
     e.preventDefault(); if (!form.firstName || !form.lastName) return; setSaving(true);
     try {
       if (editTarget) { await updateContact(id(editTarget), form); showToast('Contact updated'); }
-      else            { await createContact(form);                  showToast('Contact added'); }
+      else            { await createContact({ ...form, owner: getCurrentUser() || 'Unknown' }); showToast('Contact added'); }
       refetch(); setShowModal(false);
     } catch { showToast('Failed to save'); }
     finally { setSaving(false); }
@@ -122,32 +136,35 @@ async function importFromSheet() {
 
       {/* Contacts tab */}
       {activeTab === 'contacts' && <>
-      <input className="search-input mb16" placeholder="Search contacts…" value={search} onChange={e => setSearch(e.target.value)} />
+        <input className="search-input mb16" placeholder="Search contacts…" value={search} onChange={e => setSearch(e.target.value)} />
 
-      {loading ? <div className="muted f13">Loading…</div> : (
-        <div className="tbl-wrap">
-          <table className="tbl">
-            <thead><tr>{['Name','Title','Company','Email','Phone',''].map(h => <th key={h}>{h}</th>)}</tr></thead>
-            <tbody>
-              {filtered.length === 0 && <tr><td colSpan={6} style={{ textAlign:'center', padding:24, color:'var(--text3)' }}>No contacts found</td></tr>}
-              {filtered.map(ct => (
-                <tr key={id(ct)}>
-                  <td><div className="row gap10"><Avatar name={`${ct.firstName} ${ct.lastName}`} size={30} /><span className="fw5">{ct.firstName} {ct.lastName}</span></div></td>
-                  <td className="muted">{ct.title}</td>
-                  <td><span className="link" onClick={() => nav(`/companies/${ct.companyId}`)}>{ct.companyName}</span></td>
-                  <td className="dim f12">{ct.email}</td>
-                  <td className="dim f12">{ct.phone}</td>
-                  <td><div className="row gap8">
-                    <button className="btn btn-sm" onClick={() => openEdit(ct)}>Edit</button>
-                    <button className="btn btn-sm btn-danger" onClick={() => handleDelete(ct)}>✕</button>
-                  </div></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
+        {loading ? <div className="muted f13">Loading…</div> : (
+          <div className="tbl-wrap">
+            <table className="tbl">
+              <thead>
+                <tr>{['Name','Title','Institution','Company','Email','Phone','Added by',''].map(h => <th key={h}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {filtered.length === 0 && <tr><td colSpan={8} style={{ textAlign:'center', padding:24, color:'var(--text3)' }}>No contacts found</td></tr>}
+                {filtered.map(ct => (
+                  <tr key={id(ct)}>
+                    <td><div className="row gap10"><Avatar name={`${ct.firstName} ${ct.lastName}`} size={30} /><span className="fw5">{ct.firstName} {ct.lastName}</span></div></td>
+                    <td className="muted">{ct.title || '—'}</td>
+                    <td className="muted">{ct.institution || '—'}</td>
+                    <td><span className="link" onClick={() => nav(`/companies/${ct.companyId}`)}>{ct.companyName || '—'}</span></td>
+                    <td className="dim f12">{ct.email || '—'}</td>
+                    <td className="dim f12">{ct.phone || '—'}</td>
+                    <td className="dim f12">{ct.owner || '—'}</td>
+                    <td><div className="row gap8">
+                      <button className="btn btn-sm" onClick={() => openEdit(ct)}>Edit</button>
+                      <button className="btn btn-sm btn-danger" onClick={() => handleDelete(ct)}>✕</button>
+                    </div></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </>}
 
       {showModal && (
@@ -159,11 +176,13 @@ async function importFromSheet() {
             </div>
             <div className="grid2">
               <div className="fg"><label>Title</label><input className="finput" value={form.title||''} onChange={set('title')} placeholder="VP of Sales" /></div>
-              <div className="fg"><label>Company</label>
-                <select className="fselect" value={form.companyId||''} onChange={set('companyId')}>
-                  <option value="">— Select —</option>
-                  {(companies||[]).map(c => <option key={id(c)} value={id(c)}>{c.name}</option>)}
-                </select></div>
+              <div className="fg"><label>Institution</label><input className="finput" value={form.institution||''} onChange={set('institution')} placeholder="e.g. Kigali Health Institute" /></div>
+            </div>
+            <div className="fg"><label>Company</label>
+              <select className="fselect" value={form.companyId||''} onChange={set('companyId')}>
+                <option value="">— Select —</option>
+                {(companies||[]).map(c => <option key={id(c)} value={id(c)}>{c.name}</option>)}
+              </select>
             </div>
             <div className="grid2">
               <div className="fg"><label>Email</label><input className="finput" type="email" value={form.email||''} onChange={set('email')} /></div>
