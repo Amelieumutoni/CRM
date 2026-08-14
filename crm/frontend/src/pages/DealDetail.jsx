@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useApi } from '../hooks/useApi';
-import { getDeal, updateDeal, deleteDeal, createActivity, getContacts } from '../api';
+import { getDeal, updateDeal, deleteDeal, createActivity, getContacts, uploadQuotation, deleteQuotation } from '../api';
 import Avatar from '../components/Avatar';
 import Badge from '../components/Badge';
 import StatCard from '../components/StatCard';
@@ -9,6 +9,7 @@ import Modal from '../components/Modal';
 import ActivityItem from '../components/ActivityItem';
 import { formatCurrency, formatDate, STAGES, STAGE_COLORS, ACT_TYPES, today, id } from '../utils/helpers';
 import { useApp } from '../context/AppContext';
+import { getCurrentUser } from '../components/UserPicker';
 
 const ACT_EMPTY = { type:'Call', title:'', contactId:'', notes:'', date: today(), completed: false };
 
@@ -24,6 +25,10 @@ export default function DealDetail() {
   const [form,      setForm]      = useState({});
   const [actForm,   setActForm]   = useState(ACT_EMPTY);
   const [saving,    setSaving]    = useState(false);
+
+  // Quotation upload state
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   const set  = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
   const setA = k => e => setActForm(p => ({ ...p, [k]: e.target.value }));
@@ -57,12 +62,81 @@ export default function DealDetail() {
     finally { setSaving(false); }
   }
 
+  // ── Quotation upload ──────────────────────────────────────────────────────
+  async function handleFileUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Check size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('File too large — maximum size is 5MB');
+      return;
+    }
+
+    // Check type
+    const allowed = ['application/pdf','application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+    if (!allowed.includes(file.type)) {
+      showToast('Only PDF, Word, or Excel files are allowed');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // Convert to base64
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      await uploadQuotation(dealId, {
+        fileName:   file.name,
+        fileData:   base64,
+        fileType:   file.type,
+        uploadedBy: getCurrentUser() || 'Unknown',
+      });
+
+      await refetch();
+      showToast('✅ Quotation uploaded!');
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to upload');
+    } finally {
+      setUploading(false);
+      // Reset file input
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
+  async function handleRemoveQuotation() {
+    if (!window.confirm('Remove this quotation?')) return;
+    try {
+      await deleteQuotation(dealId);
+      await refetch();
+      showToast('Quotation removed');
+    } catch {
+      showToast('Failed to remove quotation');
+    }
+  }
+
+  function handleDownload() {
+    if (!deal?.quotation?.fileData) return;
+    const link = document.createElement('a');
+    link.href     = deal.quotation.fileData;
+    link.download = deal.quotation.fileName;
+    link.click();
+  }
+
   if (loading) return <div className="muted f13">Loading…</div>;
   if (!deal)   return <div className="muted f13">Deal not found.</div>;
 
   const co = deal.companyId;
   const ct = deal.contactId;
   const dealContacts = (contacts || []).filter(c => c.companyId === id(co));
+  const hasQuotation = deal.quotation?.fileName && deal.quotation?.fileData;
 
   return (
     <div>
@@ -95,6 +169,85 @@ export default function DealDetail() {
         </div>
 
         <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+
+          {/* ── Quotation card ── */}
+          <div className="card">
+            <div className="f11 muted mb10" style={{ textTransform:'uppercase', letterSpacing:'.05em' }}>
+              Quotation
+            </div>
+
+            {hasQuotation ? (
+              <div>
+                {/* File info */}
+                <div className="row gap8 mb8" style={{ background:'var(--bg2)', borderRadius:8, padding:'10px 12px' }}>
+                  <span style={{ fontSize:20 }}>
+                    {deal.quotation.fileType === 'application/pdf' ? '📄' : '📊'}
+                  </span>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div className="fw5 f12" style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                      {deal.quotation.fileName}
+                    </div>
+                    <div className="dim f11">
+                      Uploaded by {deal.quotation.uploadedBy} · {formatDate(deal.quotation.uploadedAt)}
+                    </div>
+                  </div>
+                </div>
+                {/* Actions */}
+                <div className="row gap8">
+                  <button className="btn btn-sm btn-primary" style={{ flex:1, justifyContent:'center' }} onClick={handleDownload}>
+                    ⬇ Download
+                  </button>
+                  <button className="btn btn-sm btn-danger" onClick={handleRemoveQuotation}>
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="dim f12 mb10">No quotation attached yet.</div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx"
+                  style={{ display:'none' }}
+                  onChange={handleFileUpload}
+                />
+                <button
+                  className="btn btn-sm"
+                  style={{ width:'100%', justifyContent:'center' }}
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {uploading ? 'Uploading…' : '📎 Attach quotation'}
+                </button>
+                <div className="dim f11" style={{ marginTop:6, textAlign:'center' }}>
+                  PDF, Word or Excel · Max 5MB
+                </div>
+              </div>
+            )}
+
+            {/* Replace button when file exists */}
+            {hasQuotation && (
+              <div style={{ marginTop:8 }}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx"
+                  style={{ display:'none' }}
+                  onChange={handleFileUpload}
+                />
+                <button
+                  className="btn btn-sm"
+                  style={{ width:'100%', justifyContent:'center', fontSize:11 }}
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {uploading ? 'Uploading…' : '↺ Replace file'}
+                </button>
+              </div>
+            )}
+          </div>
+
           {co && (
             <div className="card">
               <div className="f11 muted mb10" style={{ textTransform:'uppercase', letterSpacing:'.05em' }}>Company</div>

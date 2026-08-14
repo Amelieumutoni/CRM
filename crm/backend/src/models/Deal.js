@@ -12,6 +12,13 @@ const dealSchema = new mongoose.Schema({
   closeDate:   { type: Date, default: null },
   priority:    { type: String, enum: ['High','Medium','Low'], default: 'Medium' },
   notes:       { type: String, default: '' },
+  quotation:   {
+    fileName:  { type: String, default: '' },
+    fileData:  { type: String, default: '' }, // base64
+    fileType:  { type: String, default: '' },
+    uploadedBy: { type: String, default: '' },
+    uploadedAt: { type: Date, default: null },
+  },
   owner:       { type: String, default: 'me' },
 }, { timestamps: true });
 

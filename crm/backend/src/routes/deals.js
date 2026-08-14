@@ -56,6 +56,32 @@ router.put('/:id', async(async (req, res) => {
   res.json(deal);
 }));
 
+// Upload quotation
+router.post('/:id/quotation', async(async (req, res) => {
+  const { fileName, fileData, fileType, uploadedBy } = req.body;
+  if (!fileData) return res.status(400).json({ error: 'No file data provided' });
+  if (fileData.length > 7 * 1024 * 1024)
+    return res.status(400).json({ error: 'File too large. Maximum size is 5MB' });
+  const deal = await Deal.findByIdAndUpdate(
+    req.params.id,
+    { quotation: { fileName, fileData, fileType, uploadedBy, uploadedAt: new Date() } },
+    { new: true }
+  );
+  if (!deal) return res.status(404).json({ error: 'Deal not found' });
+  res.json({ success: true, fileName, uploadedAt: deal.quotation.uploadedAt });
+}));
+
+// Remove quotation
+router.delete('/:id/quotation', async(async (req, res) => {
+  const deal = await Deal.findByIdAndUpdate(
+    req.params.id,
+    { quotation: { fileName:'', fileData:'', fileType:'', uploadedBy:'', uploadedAt: null } },
+    { new: true }
+  );
+  if (!deal) return res.status(404).json({ error: 'Deal not found' });
+  res.json({ success: true });
+}));
+
 // Delete (cascade activities)
 router.delete('/:id', async(async (req, res) => {
   const deal = await Deal.findByIdAndDelete(req.params.id);

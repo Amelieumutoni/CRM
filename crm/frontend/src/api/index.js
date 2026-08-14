@@ -7,6 +7,8 @@ export const getCompany    = (id)    => http.get(`/companies/${id}`);
 export const createCompany = (data)  => http.post('/companies', data);
 export const updateCompany = (id, d) => http.put(`/companies/${id}`, d);
 export const deleteCompany = (id)    => http.delete(`/companies/${id}`);
+export const uploadQuotation = (id, data) => http.post(`/deals/${id}/quotation`, data);
+export const deleteQuotation = (id)       => http.delete(`/deals/${id}/quotation`);
 
 // Contacts
 export const getContacts   = ()      => http.get('/contacts');
