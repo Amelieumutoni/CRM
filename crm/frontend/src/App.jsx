@@ -1,9 +1,9 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { AppProvider } from './context/AppContext';
 import Sidebar from './components/Sidebar';
 import { getDashStats } from './api';
-import UserPicker, { getCurrentUser } from './components/UserPicker';
+import Login from './pages/Login';
 
 import Dashboard     from './pages/Dashboard';
 import Pipeline      from './pages/Pipeline';
@@ -15,20 +15,49 @@ import Contacts      from './pages/Contacts';
 import Activities    from './pages/Activities';
 import Grants        from './pages/Grants';
 
+function getStoredUser() {
+  try { return JSON.parse(localStorage.getItem('crm_user')); }
+  catch { return null; }
+}
 
 export default function App() {
-  const [stats, setStats] = useState({ openDeals: 0, overdueCount: 0 });
-  const [currentUser, setCurrentUser] = useState(getCurrentUser());
+  const [stats,       setStats]       = useState({ openDeals: 0, overdueCount: 0 });
+  const [currentUser, setCurrentUser] = useState(getStoredUser());
 
   useEffect(() => {
+    if (!currentUser) return;
     getDashStats().then(r => setStats(r.data)).catch(() => {});
-  }, []);
+  }, [currentUser]);
+
+  function handleLogin(user) {
+    setCurrentUser(user);
+  }
+
+  function handleLogout() {
+    localStorage.removeItem('crm_token');
+    localStorage.removeItem('crm_user');
+    setCurrentUser(null);
+  }
+
+  // Not logged in — show login page
+  if (!currentUser) {
+    return (
+      <AppProvider>
+        <Login onLogin={handleLogin} />
+      </AppProvider>
+    );
+  }
 
   return (
     <AppProvider>
-      {!currentUser && <UserPicker onSelect={setCurrentUser} />}<BrowserRouter>
+      <BrowserRouter>
         <div className="app">
-          <Sidebar openDeals={stats.openDeals} overdueCount={stats.overdueCount} />
+          <Sidebar
+            openDeals={stats.openDeals}
+            overdueCount={stats.overdueCount}
+            currentUser={currentUser}
+            onLogout={handleLogout}
+          />
           <main className="main">
             <Routes>
               <Route path="/"              element={<Dashboard onStats={setStats} />} />
@@ -40,6 +69,7 @@ export default function App() {
               <Route path="/contacts"      element={<Contacts />} />
               <Route path="/activities"    element={<Activities />} />
               <Route path="/grants"        element={<Grants />} />
+              <Route path="*"             element={<Navigate to="/" />} />
             </Routes>
           </main>
         </div>

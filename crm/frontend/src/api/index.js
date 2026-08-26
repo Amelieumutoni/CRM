@@ -1,6 +1,13 @@
 import axios from 'axios';
 const http = axios.create({ baseURL: import.meta.env.VITE_API_URL || '/api' });
 
+// Attach token to every request automatically
+http.interceptors.request.use(config => {
+  const token = localStorage.getItem('crm_token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
 // Companies
 export const getCompanies  = ()      => http.get('/companies');
 export const getCompany    = (id)    => http.get(`/companies/${id}`);
@@ -40,3 +47,7 @@ export const getGrantStats = ()    => http.get('/grants/stats');
 export const createGrant = (data)  => http.post('/grants', data);
 export const updateGrant = (id, d) => http.put(`/grants/${id}`, d);
 export const deleteGrant = (id)    => http.delete(`/grants/${id}`);
+// Auth
+export const login    = (data) => http.post('/auth/login', data);
+export const register = (data) => http.post('/auth/register', data);
+export const getMe    = ()     => http.get('/auth/me');

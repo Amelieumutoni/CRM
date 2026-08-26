@@ -8,7 +8,7 @@ const NAV = [
   { to: '/activities', icon: '◷', label: 'Activities' },
   { to: '/grants',     icon: '◎', label: 'Grants'     },
 ];
-export default function Sidebar({ openDeals = 0, overdueCount = 0 }) {
+export default function Sidebar({ openDeals = 0, overdueCount = 0, currentUser, onLogout }) {
   return (
     <aside className="sidebar">
       <div className="sb-logo">
