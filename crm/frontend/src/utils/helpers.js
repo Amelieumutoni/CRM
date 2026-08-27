@@ -37,3 +37,7 @@ const PAL = [
   {bg:'#FBEAF0',text:'#993556'},{bg:'#FCEBEB',text:'#A32D2D'},
 ];
 export const avatarColor = (name = '') => PAL[(name.charCodeAt(0) || 0) % PAL.length];
+export const getAuthUser = () => {
+  try { return JSON.parse(localStorage.getItem('crm_user')); }
+  catch { return null; }
+};

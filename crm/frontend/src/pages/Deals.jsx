@@ -1,11 +1,10 @@
-import { getCurrentUser } from '../components/UserPicker';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { getDeals, createDeal, getCompanies, getContacts } from '../api';
 import Badge from '../components/Badge';
 import Modal from '../components/Modal';
-import { formatCurrency, formatDate, STAGES, today, id } from '../utils/helpers';
+import { formatCurrency, formatDate, STAGES, today, id, getAuthUser } from '../utils/helpers';
 import { useApp } from '../context/AppContext';
 
 const EMPTY = { title:'', companyId:'', contactId:'', value:'', stage:'Prospecting', probability:20, closeDate:'', priority:'Medium', notes:'' };
@@ -38,7 +37,11 @@ export default function Deals() {
     if (!form.title) return;
     setSaving(true);
     try {
-      const res = await createDeal({ ...form, value: Number(form.value) || 0 });
+      const res = await createDeal({
+        ...form,
+        value: Number(form.value) || 0,
+        owner: getAuthUser()?.name || 'Unknown',
+      });
       refetch(); showToast('Deal created'); setShowModal(false); setForm(EMPTY);
       nav(`/deals/${res.data._id}`);
     } catch { showToast('Failed to create deal'); }
@@ -64,9 +67,11 @@ export default function Deals() {
       {loading ? <div className="muted f13">Loading…</div> : (
         <div className="tbl-wrap">
           <table className="tbl">
-            <thead><tr>{['Deal','Company','Value','Stage','Close date','Priority',''].map(h => <th key={h}>{h}</th>)}</tr></thead>
+            <thead>
+              <tr>{['Deal','Company','Value','Stage','Close date','Priority','Created by',''].map(h => <th key={h}>{h}</th>)}</tr>
+            </thead>
             <tbody>
-              {filtered.length === 0 && <tr><td colSpan={7} style={{ textAlign:'center', padding:24, color:'var(--text3)' }}>No deals found</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={8} style={{ textAlign:'center', padding:24, color:'var(--text3)' }}>No deals found</td></tr>}
               {filtered.map(d => (
                 <tr key={id(d)} className="clickrow" onClick={() => nav(`/deals/${id(d)}`)}>
                   <td className="fw5">{d.title}</td>
@@ -75,6 +80,7 @@ export default function Deals() {
                   <td><Badge label={d.stage} /></td>
                   <td className="muted">{formatDate(d.closeDate)}</td>
                   <td><Badge label={d.priority} type="priority" /></td>
+                  <td className="dim f12">{d.owner || '—'}</td>
                   <td onClick={e => e.stopPropagation()}>
                     <button className="btn btn-sm" onClick={() => nav(`/deals/${id(d)}`)}>View →</button>
                   </td>

@@ -3,7 +3,7 @@ import { useApi } from '../hooks/useApi';
 import { getActivities, createActivity, updateActivity, deleteActivity, getCompanies, getContacts, getDeals } from '../api';
 import ActivityItem from '../components/ActivityItem';
 import Modal from '../components/Modal';
-import { ACT_TYPES, today, id } from '../utils/helpers';
+import { ACT_TYPES, today, id, getAuthUser } from '../utils/helpers';
 import { useApp } from '../context/AppContext';
 
 const EMPTY = { type:'Call', title:'', companyId:'', contactId:'', dealId:'', notes:'', date: today(), completed: false };
@@ -133,8 +133,13 @@ export default function Activities() {
   async function handleSave(e) {
     e.preventDefault(); if (!form.title) return; setSaving(true);
     try {
-      if (editTarget) { await updateActivity(id(editTarget), form); showToast('Activity updated'); }
-      else            { await createActivity(form);                  showToast('Activity logged'); }
+      if (editTarget) {
+        await updateActivity(id(editTarget), form);
+        showToast('Activity updated');
+      } else {
+        await createActivity({ ...form, owner: getAuthUser()?.name || 'Unknown' });
+        showToast('Activity logged');
+      }
       refetch(); setShowModal(false); setForm(EMPTY);
     } catch { showToast('Failed to save'); }
     finally { setSaving(false); }
